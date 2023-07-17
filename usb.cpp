@@ -22,9 +22,9 @@ int Usb::detach(libusb_context *ctx, libusb_device *dev, libusb_hotplug_event ev
     return 0;
 }
 
-void Usb::handleHotplugEvent()
+void Usb::handleEvent()
 {
-    while (isHotplugEnable.load()) {
+    while (isHandleEvent.load()) {
         struct timeval val;
         val.tv_sec = 3;
         val.tv_usec = 0;
@@ -37,8 +37,8 @@ void Usb::handleHotplugEvent()
 Usb::Usb():
     handle(nullptr),
     interfaceNum(1),
-    isHotplugEnable(false),
-    hotplugThread(nullptr)
+    isHandleEvent(false),
+    eventThread(nullptr)
 {
     attachNotify = [](){};
     detachNotify = [](){};
@@ -46,7 +46,7 @@ Usb::Usb():
 
 Usb::~Usb()
 {
-    disableHotplug();
+    stopHandleEvent();
 }
 
 int Usb::findEndpoint(libusb_device *dev, unsigned char &inEndpoint, unsigned char &outEndpoint)
@@ -96,6 +96,7 @@ std::vector<iDevice> Usb::enumerate()
         device.vendorID = desc.idVendor;
         device.productID = desc.iProduct;
         Usb::findEndpoint(dev, device.inEndpoint, device.outEndpoint);
+		devices.push_back(device);
     }
     libusb_free_device_list(devs, 1);
     return devices;
@@ -360,25 +361,25 @@ int Usb::registerDetach(Usb::FnHotplugHandler detachHandler)
     return LIBUSB_SUCCESS;
 }
 
-int Usb::enableHotplug()
+int Usb::startHandleEvent()
 {
     /* capability */
     if (!libusb_has_capability(LIBUSB_CAP_HAS_HOTPLUG)) {
         return USB_UNSUPPORT;
     }
-    if (hotplugThread != nullptr) {
+    if (eventThread != nullptr) {
         return USB_SUCCESS;
     }
-    isHotplugEnable = true;
-    hotplugThread = std::make_shared<std::thread>(&Usb::handleHotplugEvent, this);
+    isHandleEvent = true;
+    eventThread = std::make_shared<std::thread>(&Usb::handleEvent, this);
     return USB_SUCCESS;
 }
 
-int Usb::disableHotplug()
+int Usb::stopHandleEvent()
 {
-    isHotplugEnable.store(false);
-    if (hotplugThread != nullptr) {
-        hotplugThread->join();
+    isHandleEvent.store(false);
+    if (eventThread != nullptr) {
+        eventThread->join();
     }
     return USB_SUCCESS;
 }

@@ -22,13 +22,12 @@ public:
     };
     using FnProcess = std::function<void(unsigned char*, std::size_t)>;
 protected:
-    std::thread eventThread;
+    std::thread recvThread;
     std::mutex mutex;
     std::condition_variable condit;
     int state;
     FnProcess process;
 protected:
-    void handleTransferEvent();
     void recv();
     static void writeHandler(libusb_transfer *transfer);
     static void readHandler(libusb_transfer *transfer);

@@ -81,8 +81,8 @@ protected:
     libusb_device_handle *handle;
     int interfaceNum;
     /* hotplug */
-    std::atomic_bool isHotplugEnable;
-    std::shared_ptr<std::thread> hotplugThread;
+    std::atomic_bool isHandleEvent;
+    std::shared_ptr<std::thread> eventThread;
     /* notify */
     FnAttachNotify  attachNotify;
     FnDetachNotify  detachNotify;
@@ -97,7 +97,7 @@ protected:
                       libusb_hotplug_event event,
                       void* userdata);
 
-    void handleHotplugEvent();
+    void handleEvent();
 public:
     Usb();
     ~Usb();
@@ -118,8 +118,9 @@ public:
     /* register hotplug */
     int registerAttach(FnHotplugHandler attachHandler);
     int registerDetach(FnHotplugHandler detachHandler);
-    int enableHotplug();
-    int disableHotplug();
+    /* event */
+    int startHandleEvent();
+    int stopHandleEvent();
     /* notify */
     void registerAttachNotify(const FnAttachNotify &notify);
     void registerDetachNotify(const FnDetachNotify &notify);
