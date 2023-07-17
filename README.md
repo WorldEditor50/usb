@@ -1,0 +1,4 @@
+# USB Wrapper
+
+- libusb
+- hidapi
