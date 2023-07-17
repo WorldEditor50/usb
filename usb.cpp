@@ -363,10 +363,6 @@ int Usb::registerDetach(Usb::FnHotplugHandler detachHandler)
 
 int Usb::startHandleEvent()
 {
-    /* capability */
-    if (!libusb_has_capability(LIBUSB_CAP_HAS_HOTPLUG)) {
-        return USB_UNSUPPORT;
-    }
     if (eventThread != nullptr) {
         return USB_SUCCESS;
     }
