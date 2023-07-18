@@ -23,7 +23,7 @@
 #endif
 
 
-struct iDevice
+struct iUsb
 {
     unsigned short vendorID;
     unsigned short productID;
@@ -31,7 +31,7 @@ struct iDevice
     unsigned char outEndpoint;
 };
 
-class Usb : public iDevice
+class Usb : public iUsb
 {
 public:
     class Context
@@ -84,8 +84,8 @@ protected:
     std::atomic_bool isHandleEvent;
     std::shared_ptr<std::thread> eventThread;
     /* notify */
-    FnAttachNotify  attachNotify;
-    FnDetachNotify  detachNotify;
+    FnAttachNotify attachNotify;
+    FnDetachNotify detachNotify;
 protected:
     /* handle hotplug event */
     static int attach(libusb_context *ctx,
@@ -103,7 +103,7 @@ public:
     ~Usb();
     /* device */
     static int findEndpoint(libusb_device* dev, unsigned char &endpointIn, unsigned char &endpointOut);
-    static std::vector<Usb::iDevice> enumerate();
+    static std::vector<iUsb> enumerate();
     static int findDevice(unsigned short vendorID, unsigned short productID, libusb_device_handle* &handle, unsigned char &inEndpoint, unsigned char &outEndpoint);
     int openDevice(unsigned short vendorID, unsigned short productID);
     int _openDevice();

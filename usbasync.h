@@ -39,7 +39,6 @@ public:
     void stop();
     int write(unsigned char* data, std::size_t size);
     int read(unsigned char* &data, std::size_t &size);
-
 };
 
 #endif // USBASYNC_H

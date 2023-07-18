@@ -57,10 +57,12 @@ int Usb::findEndpoint(libusb_device *dev, unsigned char &inEndpoint, unsigned ch
         LOG_INFO("fail to get config descriptor", ret);
         return ret;
     }
+    LOG_INFO("libusb_get_config_descriptor", 0)
     /* find endpoint */
      for(int i = 0; i < configDesc->bNumInterfaces; i++){
          for (int j = 0; j < configDesc->interface[i].num_altsetting; j++) {
              for (int k = 0; k < configDesc->interface[i].altsetting[j].bNumEndpoints; k++) {
+                 LOG_INFO("config", 0)
                  const struct libusb_endpoint_descriptor *endpoint = &(configDesc->interface[i].altsetting[j].endpoint[k]);
                  if (endpoint->bEndpointAddress & LIBUSB_ENDPOINT_IN) {
                      inEndpoint = endpoint->bEndpointAddress;
@@ -74,11 +76,11 @@ int Usb::findEndpoint(libusb_device *dev, unsigned char &inEndpoint, unsigned ch
      return 0;
 }
 
-std::vector<iDevice> Usb::enumerate()
+std::vector<iUsb> Usb::enumerate()
 {
-    std::vector<iDevice> devices;
-    libusb_device **devs;
-    ssize_t deviceNum = libusb_get_device_list(nullptr, &devs);
+    std::vector<iUsb> devices;
+    libusb_device **devs = nullptr;
+    ssize_t deviceNum = libusb_get_device_list(Usb::context.get(), &devs);
     if (deviceNum < 0) {
         return devices;
     }
@@ -92,7 +94,7 @@ std::vector<iDevice> Usb::enumerate()
         if (ret < 0) {
             continue;
         }
-        Usb::iDevice device;
+        Usb::iUsb device;
         device.vendorID = desc.idVendor;
         device.productID = desc.iProduct;
         Usb::findEndpoint(dev, device.inEndpoint, device.outEndpoint);

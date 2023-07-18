@@ -79,7 +79,7 @@ int UsbAsync::start(unsigned short vendorID, unsigned short productID)
     if (ret != USB_SUCCESS) {
         return USB_OPEN_FAILED;
     }
-	Usb::startHandleEvent();
+    Usb::startHandleEvent();
     recvThread = std::thread(&UsbAsync::recv, this);
     return USB_SUCCESS;
 }

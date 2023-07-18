@@ -15,7 +15,7 @@ void Hid::recv()
             }
             if (state == STATE_CLOSED) {
                 int ret = 0;
-                if (specificUsage == false) {
+                if (specifiedUsage == false) {
                     ret = openDevice(vendorID, productID);
                 } else {
                     ret = openDevice(vendorID, productID, usagePage, usage);
@@ -27,8 +27,6 @@ void Hid::recv()
                     notify(true);
                 }
             }
-
-
         }
 
         int len = hid_read(handle, recvCache, max_recv_size);
@@ -52,7 +50,7 @@ void Hid::recv()
 Hid::Hid():
     handle(nullptr),
     state(STATE_NONE),
-    specificUsage(false),
+    specifiedUsage(false),
     recvCache(nullptr)
 {
     recvCache = new unsigned char[max_recv_size];
@@ -72,16 +70,16 @@ Hid::~Hid()
     }
 }
 
-std::vector<iDevice> Hid::enumerate()
+std::vector<iHid> Hid::enumerate()
 {
-    std::vector<iDevice> devices;
+    std::vector<iHid> devices;
     struct hid_device_info *devs = nullptr;
     struct hid_device_info *curDevice = nullptr;
 
     devs = hid_enumerate(0x0, 0x0);
     curDevice = devs;
     while (curDevice != nullptr) {
-        iDevice dev;
+        iHid dev;
         dev.vendorID = curDevice->vendor_id;
         dev.productID = curDevice->product_id;
         dev.usagePage = curDevice->usage_page;
@@ -134,7 +132,7 @@ int Hid::openDevice(unsigned short vid, unsigned short pid, unsigned short usage
         return HID_OPEN_FAILED;
     }
     hid_free_enumeration(devs);
-    specificUsage = true;
+    specifiedUsage = true;
     return HID_SUCCESS;
 }
 

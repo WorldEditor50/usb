@@ -8,14 +8,14 @@
 #include <condition_variable>
 #include "hidapi/hidapi.h"
 
-struct iDevice {
+struct iHid {
     unsigned short vendorID;
     unsigned short productID;
     unsigned short usagePage;
     unsigned short usage;
 };
 
-class Hid : public iDevice
+class Hid : public iHid
 {
 public:
     using FnProcess = std::function<void(unsigned char*, std::size_t)>;
@@ -35,13 +35,12 @@ public:
         HID_READ_FAILED,
         HID_SEND_FEATURE_REPORT_FAILED,
         HID_RECV_FEATURE_REPORT_FAILED
-
     };
     class Init
     {
     public:
-        Init() { hid_init(); }
-        ~Init() { hid_exit(); }
+        Init()  {hid_init();}
+        ~Init() {hid_exit(); }
     };
     constexpr static std::size_t max_recv_size = 1024;
     constexpr static std::size_t max_send_size = 1024;
@@ -54,14 +53,14 @@ protected:
     FnProcess process;
     FnNotify notify;
     int state;
-    bool specificUsage;
+    bool specifiedUsage;
     unsigned char* recvCache;
 protected:
     void recv();
 public:
     Hid();
     ~Hid();
-    static std::vector<iDevice> enumerate();
+    static std::vector<iHid> enumerate();
     int openDevice(unsigned short vid, unsigned short pid);
     int openDevice(unsigned short vid, unsigned short pid, unsigned short usagePage, unsigned short usage);
     void closeDevice();
