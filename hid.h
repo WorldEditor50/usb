@@ -8,24 +8,18 @@
 #include <condition_variable>
 #include "hidapi/hidapi.h"
 
-struct iHid {
-    unsigned short vendorID;
-    unsigned short productID;
-    unsigned short usagePage;
-    unsigned short usage;
-};
 
-class Hid : public iHid
+class Hid
 {
 public:
     using FnProcess = std::function<void(unsigned char*, std::size_t)>;
     using FnNotify = std::function<void(bool)>;
     enum State {
-        STATE_NONE = 0,
-        STATE_RUN,
+        STATE_PREPEND = 0,
         STATE_OPENED,
-        STATE_CLOSED,
+        STATE_RUN,
         STATE_PAUSE,
+        STATE_CLOSE,
         STATE_TERMINATE
     };
     enum Code {
@@ -36,6 +30,14 @@ public:
         HID_SEND_FEATURE_REPORT_FAILED,
         HID_RECV_FEATURE_REPORT_FAILED
     };
+
+    struct Property {
+        unsigned short vendorID;
+        unsigned short productID;
+        unsigned short usagePage;
+        unsigned short usage;
+    };
+
     class Init
     {
     public:
@@ -46,6 +48,7 @@ public:
     constexpr static std::size_t max_send_size = 1024;
     static Init init;
 protected:
+    Property property;
     hid_device *handle;
     std::thread recvThread;
     std::mutex mutex;
@@ -60,7 +63,7 @@ protected:
 public:
     Hid();
     ~Hid();
-    static std::vector<iHid> enumerate();
+    static std::vector<Hid::Property> enumerate();
     int openDevice(unsigned short vid, unsigned short pid);
     int openDevice(unsigned short vid, unsigned short pid, unsigned short usagePage, unsigned short usage);
     void closeDevice();

@@ -8,17 +8,18 @@ void Hid::recv()
         {
             std::unique_lock<std::mutex> locker(mutex);
             condit.wait(locker, [=]()->bool{
-                return state == STATE_OPENED || state == STATE_TERMINATE || state == STATE_RUN;
+                return state == STATE_PREPEND || state == STATE_OPENED ||
+                        state == STATE_RUN || state == STATE_TERMINATE;
             });
             if (state == STATE_TERMINATE) {
+                state = STATE_PREPEND;
                 break;
-            }
-            if (state == STATE_CLOSED) {
+            } else if (state == STATE_PREPEND) {
                 int ret = 0;
                 if (specifiedUsage == false) {
-                    ret = openDevice(vendorID, productID);
+                    ret = openDevice(property.vendorID, property.productID);
                 } else {
-                    ret = openDevice(vendorID, productID, usagePage, usage);
+                    ret = openDevice(property.vendorID, property.productID, property.usagePage, property.usage);
                 }
                 if (ret != HID_SUCCESS) {
                     continue;
@@ -26,6 +27,10 @@ void Hid::recv()
                     state = STATE_RUN;
                     notify(true);
                 }
+            } else if (state == STATE_CLOSE) {
+                closeDevice();
+                state = STATE_TERMINATE;
+                continue;
             }
         }
 
@@ -33,9 +38,7 @@ void Hid::recv()
         if (len < 0) {
             notify(false);
             handle = nullptr;
-            std::unique_lock<std::mutex> locker(mutex);
-            state = STATE_CLOSED;
-            condit.notify_all();
+            state = STATE_PREPEND;
             continue;
         }
         if (len == 0) {
@@ -49,7 +52,7 @@ void Hid::recv()
 
 Hid::Hid():
     handle(nullptr),
-    state(STATE_NONE),
+    state(STATE_PREPEND),
     specifiedUsage(false),
     recvCache(nullptr)
 {
@@ -64,22 +67,22 @@ Hid::~Hid()
         delete [] recvCache;
         recvCache = nullptr;
     }
-    if (state == STATE_RUN) {
+    if (state != STATE_PREPEND) {
         stop();
         recvThread.join();
     }
 }
 
-std::vector<iHid> Hid::enumerate()
+std::vector<Hid::Property> Hid::enumerate()
 {
-    std::vector<iHid> devices;
+    std::vector<Hid::Property> devices;
     struct hid_device_info *devs = nullptr;
     struct hid_device_info *curDevice = nullptr;
 
     devs = hid_enumerate(0x0, 0x0);
     curDevice = devs;
     while (curDevice != nullptr) {
-        iHid dev;
+        Hid::Property dev;
         dev.vendorID = curDevice->vendor_id;
         dev.productID = curDevice->product_id;
         dev.usagePage = curDevice->usage_page;
@@ -100,8 +103,8 @@ int Hid::openDevice(unsigned short vid, unsigned short pid)
     if (handle == nullptr) {
         return HID_OPEN_FAILED;
     }
-    vendorID = vid;
-    productID = pid;
+    property.vendorID = vid;
+    property.productID = pid;
     return HID_SUCCESS;
 }
 
@@ -253,7 +256,7 @@ int Hid::recvFeatureReport(unsigned char *&data, size_t &datasize)
 
 int Hid::start(unsigned short vid, unsigned short pid)
 {
-    if (state != STATE_NONE) {
+    if (state != STATE_PREPEND) {
         return HID_SUCCESS;
     }
     int ret = openDevice(vid, pid);
@@ -267,7 +270,7 @@ int Hid::start(unsigned short vid, unsigned short pid)
 
 int Hid::start(unsigned short vid, unsigned short pid, unsigned short usagePage, unsigned short usage)
 {
-    if (state != STATE_NONE) {
+    if (state != STATE_PREPEND) {
         return HID_SUCCESS;
     }
     int ret = openDevice(vid, pid, usagePage, usage);
@@ -282,7 +285,7 @@ int Hid::start(unsigned short vid, unsigned short pid, unsigned short usagePage,
 void Hid::stop()
 {
     std::unique_lock<std::mutex> locker(mutex);
-    state = STATE_TERMINATE;
+    state = STATE_CLOSE;
     condit.notify_all();
     return;
 }

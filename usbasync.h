@@ -21,6 +21,7 @@ public:
         TYPE_CONTROL
     };
     using FnProcess = std::function<void(unsigned char*, std::size_t)>;
+    constexpr static std::size_t max_buffer_size = 1024;
 protected:
     std::thread recvThread;
     std::mutex mutex;

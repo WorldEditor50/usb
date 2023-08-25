@@ -13,12 +13,17 @@ void UsbAsync::recv()
             }
         }
         libusb_transfer* inTransfer = libusb_alloc_transfer(0);
-        unsigned char *buf = new unsigned char[64];
-        memset(buf, 0, 64);
+        unsigned char *buf = new unsigned char[max_buffer_size];
+        memset(buf, 0, max_buffer_size);
         inTransfer->actual_length = 0;
-
-        libusb_fill_bulk_transfer(inTransfer, handle, inEndpoint,
-                                  buf, 64, UsbAsync::readHandler, this, timeout_duration);
+        libusb_fill_bulk_transfer(inTransfer,
+                                  handle,
+                                  property.inEndpoint,
+                                  buf,
+                                  max_buffer_size,
+                                  UsbAsync::readHandler,
+                                  this,
+                                  timeout_duration);
         inTransfer->type = LIBUSB_TRANSFER_TYPE_BULK;
         int ret = libusb_submit_transfer(inTransfer);
         if (ret < 0) {
@@ -70,7 +75,8 @@ UsbAsync::UsbAsync()
 
 UsbAsync::~UsbAsync()
 {
-
+    stop();
+    recvThread.join();
 }
 
 int UsbAsync::start(unsigned short vendorID, unsigned short productID)
@@ -97,10 +103,17 @@ int UsbAsync::write(unsigned char *data, size_t size)
     if (data == nullptr || size == 0) {
         return USB_INVALID_PARAM;
     }
-    libusb_transfer *outTransfer = libusb_alloc_transfer(0);
 
-    libusb_fill_bulk_transfer(outTransfer, handle, outEndpoint,
-                              data, size, UsbAsync::writeHandler, this, timeout_duration);
+    libusb_transfer *outTransfer = libusb_alloc_transfer(0); // 0 -> specify a async transfer
+
+    libusb_fill_bulk_transfer(outTransfer,
+                              handle,
+                              property.outEndpoint,
+                              data,
+                              size,
+                              UsbAsync::writeHandler,
+                              this,
+                              timeout_duration);
     outTransfer->type = LIBUSB_TRANSFER_TYPE_BULK;
     int ret = libusb_submit_transfer(outTransfer);
     if (ret != LIBUSB_SUCCESS) {

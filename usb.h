@@ -23,17 +23,17 @@
 #endif
 
 
-struct iUsb
-{
-    unsigned short vendorID;
-    unsigned short productID;
-    unsigned char inEndpoint;
-    unsigned char outEndpoint;
-};
-
-class Usb : public iUsb
+class Usb
 {
 public:
+    struct Property
+    {
+        unsigned short vendorID;
+        unsigned short productID;
+        unsigned char inEndpoint;
+        unsigned char outEndpoint;
+    };
+
     class Context
     {
     public:
@@ -76,6 +76,7 @@ public:
     constexpr static int timeout_duration = 3000;
     constexpr static int max_retry_count = 3;
 protected:
+    Property property;
     /* device */
     static Context context;
     libusb_device_handle *handle;
@@ -103,7 +104,7 @@ public:
     ~Usb();
     /* device */
     static int findEndpoint(libusb_device* dev, unsigned char &endpointIn, unsigned char &endpointOut);
-    static std::vector<iUsb> enumerate();
+    static std::vector<Usb::Property> enumerate();
     static int findDevice(unsigned short vendorID, unsigned short productID, libusb_device_handle* &handle, unsigned char &inEndpoint, unsigned char &outEndpoint);
     int openDevice(unsigned short vendorID, unsigned short productID);
     int _openDevice();

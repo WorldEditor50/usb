@@ -76,9 +76,9 @@ int Usb::findEndpoint(libusb_device *dev, unsigned char &inEndpoint, unsigned ch
      return 0;
 }
 
-std::vector<iUsb> Usb::enumerate()
+std::vector<Usb::Property> Usb::enumerate()
 {
-    std::vector<iUsb> devices;
+    std::vector<Usb::Property> devices;
     libusb_device **devs = nullptr;
     ssize_t deviceNum = libusb_get_device_list(Usb::context.get(), &devs);
     if (deviceNum < 0) {
@@ -94,7 +94,7 @@ std::vector<iUsb> Usb::enumerate()
         if (ret < 0) {
             continue;
         }
-        Usb::iUsb device;
+        Usb::Property device;
         device.vendorID = desc.idVendor;
         device.productID = desc.iProduct;
         Usb::findEndpoint(dev, device.inEndpoint, device.outEndpoint);
@@ -150,8 +150,8 @@ int Usb::findDevice(unsigned short vendorID, unsigned short productID, libusb_de
 
 int Usb::openDevice(unsigned short vendorID, unsigned short productID)
 {
-    this->vendorID = vendorID;
-    this->productID = productID;
+    property.vendorID = vendorID;
+    property.productID = productID;
     return _openDevice();
 }
 
@@ -163,7 +163,11 @@ int Usb::_openDevice()
     if (context.get() == nullptr) {
         return USB_INVALID_CONTEXT;
     }
-    int ret = findDevice(vendorID, productID, handle, inEndpoint, outEndpoint);
+    int ret = findDevice(property.vendorID,
+                         property.productID,
+                         handle,
+                         property.inEndpoint,
+                         property.outEndpoint);
     if (ret != LIBUSB_SUCCESS) {
         return USB_OPEN_FAILED;
     }
@@ -208,7 +212,12 @@ int Usb::sendBulk(unsigned char *data, size_t size)
     int ret = 0;
     for (int i = 0; i < max_retry_count; i++) {
         int actualSize = 0;
-        ret = libusb_bulk_transfer(handle, outEndpoint, data, size, &actualSize, timeout_duration);
+        ret = libusb_bulk_transfer(handle,
+                                   property.outEndpoint,
+                                   data,
+                                   size,
+                                   &actualSize,
+                                   timeout_duration);
         if (ret == LIBUSB_ERROR_PIPE) {
             continue;
         } else {
@@ -229,7 +238,12 @@ int Usb::recvBulk(unsigned char *data, size_t size)
     int ret = 0;
     for (int i = 0; i < max_retry_count; i++) {
         int actualSize = 0;
-        ret = libusb_bulk_transfer(handle, inEndpoint, data, size, &actualSize, timeout_duration);
+        ret = libusb_bulk_transfer(handle,
+                                   property.inEndpoint,
+                                   data,
+                                   size,
+                                   &actualSize,
+                                   timeout_duration);
         if (ret == LIBUSB_ERROR_PIPE) {
             continue;
         } else {
@@ -250,7 +264,12 @@ int Usb::sendInterrupt(unsigned char *data, size_t size)
     int ret = 0;
     for (int i = 0; i < max_retry_count; i++) {
         int actualSize = 0;
-        ret = libusb_interrupt_transfer(handle, outEndpoint, data, size, &actualSize, timeout_duration);
+        ret = libusb_interrupt_transfer(handle,
+                                        property.outEndpoint,
+                                        data,
+                                        size,
+                                        &actualSize,
+                                        timeout_duration);
         if (ret == LIBUSB_ERROR_PIPE) {
             continue;
         } else {
@@ -271,7 +290,12 @@ int Usb::recvInterrupt(unsigned char *data, size_t size)
     int ret = 0;
     for (int i = 0; i < max_retry_count; i++) {
         int actualSize = 0;
-        ret = libusb_interrupt_transfer(handle, inEndpoint, data, size, &actualSize, timeout_duration);
+        ret = libusb_interrupt_transfer(handle,
+                                        property.inEndpoint,
+                                        data,
+                                        size,
+                                        &actualSize,
+                                        timeout_duration);
         if (ret == LIBUSB_ERROR_PIPE) {
             continue;
         } else {
@@ -328,8 +352,8 @@ int Usb::registerAttach(Usb::FnHotplugHandler attachHandler)
     int ret = libusb_hotplug_register_callback(Usb::context.get(),
                                                LIBUSB_HOTPLUG_EVENT_DEVICE_ARRIVED,
                                                LIBUSB_HOTPLUG_NO_FLAGS,
-                                               vendorID,
-                                               productID,
+                                               property.vendorID,
+                                               property.productID,
                                                LIBUSB_HOTPLUG_MATCH_ANY,
                                                &Usb::attach,
                                                this,
@@ -351,8 +375,8 @@ int Usb::registerDetach(Usb::FnHotplugHandler detachHandler)
     int ret = libusb_hotplug_register_callback(Usb::context.get(),
                                                LIBUSB_HOTPLUG_EVENT_DEVICE_LEFT,
                                                LIBUSB_HOTPLUG_NO_FLAGS,
-                                               vendorID,
-                                               productID,
+                                               property.vendorID,
+                                               property.productID,
                                                LIBUSB_HOTPLUG_MATCH_ANY,
                                                &Usb::detach,
                                                this,
